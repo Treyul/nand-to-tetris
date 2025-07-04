@@ -1,1 +1,10 @@
 .vscode
+
+harwdware logic elements/*/*.cmp
+harwdware logic elements/*/*.tst
+harwdware logic elements/*/*.xml
+harwdware logic elements/*/*/*.xml
+harwdware logic elements/*/*/*.tst
+harwdware logic elements/*/*/*.cmp
+harwdware logic elements/*/*/*/*.cmp
+harwdware logic elements/*/*/*/*.tst
