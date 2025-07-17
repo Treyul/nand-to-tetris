@@ -21,6 +21,14 @@
 #define STATIC_P 17
 #define POINTER_P 16
 
+//define constants to be used
+char* File_Name;
+char* Dest_File_Name;
+    
+//define file extensions of the source and destination files
+char* Src_FExt = "vm";
+char* Dest_FExt = "asm";
+
 // declare all function
 /**
  * @brief Takes the file name and return the file extension of the file
@@ -68,27 +76,11 @@ int Push_Stack(int Asm_File_Desc,int Memory_Segment, char* Segement_Index);
 
 int Pop_Stack(int Asm_File_Desc,int Memory_Segment, char* Segement_Index);
 
+/**
+ * @brief 
+ * Function is used to remove trailing whitespaces at the beginning and end of a string
+ * 
+ * @return char* 
+ */
+char* strip(char* _string, int len);
 
-// removed code pending approval for deletion
-               /* code */
-                // char* cmd = calloc(4,sizeof(char));
-                // sprintf(cmd,"@%s\n",mem_segment_number);
-                // printf("%s\n",cmd);
-
-                // write(Dest_File_Desc,cmd,strlen(cmd));
-                // write(Dest_File_Desc,"D=A\n",4);
-                // cmd = calloc(4,sizeof(char));
-                // sprintf(cmd,"@%d\n",ARG_P);
-                // write(Dest_File_Desc,cmd,strlen(cmd));
-                // free(cmd);
-                // write(Dest_File_Desc,"A=A+D\n",6);
-                // write(Dest_File_Desc,"D=M\n",4);
-
-                // cmd = calloc(3,sizeof(char));
-                // sprintf(cmd,"@%d\n",STACK_P);
-                // write(Dest_File_Desc,cmd,strlen(cmd));
-                // write(Dest_File_Desc,"AM=M+1\n",7);
-                // write(Dest_File_Desc,"A=A-1\n",6);
-                // write(Dest_File_Desc,"M=D\n",4);
-
-                // sprintf();

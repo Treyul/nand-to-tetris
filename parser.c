@@ -5,23 +5,17 @@
 #include<error.h>
 #include<time.h>
 #include<stdlib.h>
+#include<ctype.h>
 #include"stack_ini.h"
 
 //TODO add support for file path
-
+// TODO create a variadic function to write a formatted string to a file descriptor
 
 int main(int argc,char* argv[])
 {
     clock_t start, end;
     double time_spent;
     start = clock();
-
-    char* File_Name;
-    char* Dest_File_Name;
-    
-    //define file extensions of the source and destination files
-    char* Src_FExt = "vm";
-    char* Dest_FExt = "asm";
 
     //get the vm file name and the name to be of the compiled file
     if (argc < 2)
@@ -45,9 +39,9 @@ int main(int argc,char* argv[])
         else
         {
             int name = strlen(File_Name);
-            char* File_Ext = File_Extension(File_Name);
-            printf("%s\n", File_Ext);
-            if ( !strcmp(File_Ext,Src_FExt) )
+            char* File_Extn = File_Extension(File_Name);
+         
+            if ( !strcmp(File_Extn,Src_FExt) )
             {
                 //validate the destination file if it exists
                 //destination file not defined
@@ -55,11 +49,11 @@ int main(int argc,char* argv[])
                 {
                     //TODO also check if a file already exists with the same name
                     Dest_File_Name = File_Preffix(File_Name);
-                    printf("this is the file preffix %s\n",Dest_File_Name);
+                    
                     //create output file ith the same prefix as the source file
                     (Dest_File_Name,strlen(Dest_File_Name) + strlen(Dest_FExt) - 1);
                     strcat(Dest_File_Name,Dest_FExt);
-                    printf("%s",Dest_File_Name);
+                    
                     int fd = open(Dest_File_Name,O_CREAT | O_TRUNC | O_RDWR);
                     if (fd < 0)
                     {
@@ -67,10 +61,10 @@ int main(int argc,char* argv[])
                         return fd;
                     }
                     close(fd);
-                    // confirm that file has been created successfully
                 }
                 else
                 {
+                    //ensure destination file exists
                     Dest_File_Name = argv[2];
                     int fexists = access(Dest_File_Name,F_OK);
                     // cjeck if file exists
@@ -93,21 +87,27 @@ int main(int argc,char* argv[])
                 fprintf(stderr,"The Source file is not valid. Choose another File\n");
                 return -1;
             }
-            
-
         }
-        
     }
 
-    //printf("%s", File_Name);'
-    int Source_File = open(File_Name,O_RDONLY);
+    
+    // open file without translation the character \n to \r\n
+    int Source_File = open(File_Name,O_RDONLY | O_BINARY);
     int Destination_File = open(Dest_File_Name,O_WRONLY);
     if (Source_File > 0 && Dest_File_Name > 0)
     {
         //do operation since file has been opened successfully
         char* line = readline(Source_File);
-        // printf("This is the function return: %s\n",line);
-        char** cmds;// = Cmd_Segregate(line);
+        
+        char** cmds;
+
+        // check if destination file has write permissions and change if not
+        int Read_permission = access(Dest_File_Name,W_OK);
+
+        if (Read_permission < 0 )
+        {
+            chmod(Dest_File_Name,666);
+        }
 
         while (line)
         {
@@ -116,30 +116,10 @@ int main(int argc,char* argv[])
             
             line = readline(Source_File);
             printf("This is the function return:... %s\n",line);
-            // printf("This is the function return: %s\n",line);
-            // cmds = Cmd_Segregate(line);
-            // Parse_File(Destination_File, cmds);
-
-            // line = readline(Source_File);
-            // printf("This is the function return: %s\n",line);
-            // cmds = Cmd_Segregate(line);
-            // Parse_File(Destination_File, cmds);
-
-            // line = readline(Source_File);
-            // printf("This is the function return: %s\n",line);
-            // cmds = Cmd_Segregate(line);
-            // Parse_File(Destination_File, cmds);
+       
         }
-        // printf("hrere");
-        //printf("This is the function return: %s\n",cmds[0]);
 
-        // int wr = Parse_File(Destination_File,cmds);
         printf("closing files\n");
-        // int RD =access(Dest_File_Name,W_OK);
-        // printf("%d %s\n",RD, strerror(errno));
-        // chmod(Dest_File_Name,666);
-        // write(Destination_File,Line,20);
-        //close file after compiling
         close(Source_File);
         close(Destination_File);
     }
@@ -148,6 +128,7 @@ int main(int argc,char* argv[])
         fprintf(stderr,"An error has occured when opening the files: %s", strerror(errno));
         return -1;
     }
+    
     end = clock();
     time_spent =  (double)(end - start) / CLOCKS_PER_SEC;
     printf("\nExecution time: %f seconds\n", time_spent);
@@ -172,40 +153,48 @@ char* File_Preffix(char* File_name)
     
     int filename_len = strlen(File_name);
     int prefix_len = filename_len - strlen(dot) + 1;
-    printf("%d %d\n",filename_len,prefix_len);
-     char* prefix = malloc(prefix_len);
+    
+    char* prefix = malloc(prefix_len);
 
-     strncpy(prefix,File_name,prefix_len);
+    strncpy(prefix,File_name,prefix_len);
     prefix[prefix_len] = '\0';
-     return prefix;
+    return prefix;
 }
 
 char* readline(int File_Desc)
 {
-    
+    // read 25 bytes from file
     char* Read_Buf = calloc(25,sizeof(char));
     int rd = read(File_Desc,Read_Buf,25);
+    
+    // if error occurs during reading close operation
     if (!rd)
     {
         printf("error\n");
         return NULL;
     }
+
     //check for the first occurence of new line character in the read line(s)
     char* Line_Noise = strchr(Read_Buf,'\n');
     int Size_of_line;
     int pos;
-    //since the result of Line noise also includes the new line character we minus 1 from the supposed length
-    if (Line_Noise ==NULL && strcmp(Read_Buf," "))
+
+    //last line in file
+    if (Line_Noise == NULL && strcmp(Read_Buf," "))
     {
-        // Line_Noise = ;
         Size_of_line = strlen(Read_Buf);
-        // int pos = lseek(File_Desc,-strlen(Line_Noise)+2,SEEK_CUR);
-        
     }
     else
     {
         Size_of_line = strlen(Read_Buf) - strlen(Line_Noise);
-        int pos = lseek(File_Desc,-strlen(Line_Noise)+2,SEEK_CUR);
+
+        if (!Size_of_line)
+        {
+            // Advance upto the next line with data
+
+        }
+        //since the result of Line noise also includes the new line character we minus 1 from the supposed length
+        int pos = lseek(File_Desc,-strlen(Line_Noise)+1,SEEK_CUR);
         
     }
     
@@ -213,66 +202,88 @@ char* readline(int File_Desc)
     
     //copy contents of line to the read_line
     strncpy(Read_Line,Read_Buf,Size_of_line);
-    printf("%s;%s:%s:%d\n",Read_Buf,Line_Noise,Read_Line,Size_of_line);
-
-    //set the file cursor to the next line start position
-    // printf("This is the position of the cursor: %d\n",pos);
     free(Read_Buf);
-    return Read_Line;
+
+    //strip leading whitespaces on the readline
+    int i;
+    for (i = 0;i < Size_of_line;i++)
+    {
+        if (Read_Line[i] == ' ') continue;
+        else break;
+    }
+    
+    //copy the stripped string to a new memory
+    char* string2 = calloc(Size_of_line - i,sizeof(char));
+    strncpy(string2,Read_Line + i,Size_of_line - i);
+    free(Read_Line);
+
+    //right strip the string
+    Size_of_line = Size_of_line - i;
+    int span = Size_of_line - 1;
+    i = 0;
+    
+    printf("length is %d : %d\n",Size_of_line,span);
+    for (span; span > 0; span--)
+    {
+        if (isspace(string2[span]))  i++;
+        else   break;
+    }
+
+    // copy final string to a new memory
+    char* string3 = calloc(Size_of_line-i,sizeof(char));
+    strncpy(string3,string2,Size_of_line-i);
+    free(string2);
+
+    printf("computed string is : %s :\n",string3);
+    return string3;
 }
 
 char** Cmd_Segregate(char* instructions)
-{   //TODO raise error if the coomands are more than three
-    // iterate through the string separating its contents using " " as separator
+{   //TODO raise error if the commands are more than three
+
     char** cmd_array = calloc(strlen(instructions),sizeof(char));
-    printf("INSTRUCT %s\n",instructions);
     int count =0;
     char *commands = strdup(instructions);
+    
+    // iterate through the string separating its contents using " " as separator
     while(commands)
     {
-        // printf("starting at %s and count is %d\n",commands,count);
-        
         char* commands_ext = strchr(commands,' ');
         
+        //compute the last command and break out of loop
         if (commands_ext == NULL && strcmp(commands," "))
         {
             cmd_array[count] = commands;
-            printf("last command is %s",commands);
-            // count++;
-            
             break;
         }
         
         //get length of commands
         int cmd_len = strlen(commands) - strlen(commands_ext);
-        char* command = calloc(cmd_len + 1,sizeof(char));
-        char* cpy = strncpy(command,commands,sizeof(char) * cmd_len);
-        printf("cycle return is %s\n",cpy);
-        printf("%d %s:%s\n",cmd_len,command,commands_ext+1);
+        char* command = calloc(cmd_len + 1, sizeof(char));
+        char* cpy = strncpy(command, commands, sizeof(char) * cmd_len);
+        
+        printf("cycle return is::%d :%s:%s\n",cmd_len,command,commands_ext+1);
+        
+        //break out of operation for blank lines 
+        if (!cmd_len) break;
+
         cmd_array[count] = command;
         
         char* temp = strdup(commands_ext + 1);
-        // printf("command computed is: %s\n",cmd_array[count]);
-        // printf("final comp:%s\n",temp);
+        
         free(commands);
         commands = calloc(strlen(temp),sizeof(char));
         commands = temp;
         count++;
     }
     printf("computed %d commands\n",count);
-    // int i;
-    // for (i = 0;i < count; i++){
-        printf("commands computed are %s\n",cmd_array[0]);
-        printf("commands computed are %s\n",cmd_array[1]);
-        printf("commands computed are %s\n",cmd_array[2]);
-    // }
+
     return cmd_array;
 }
 
 int Parse_File(int Dest_File_Desc, char** Command_Array)
 {
     // decontruct first element to get type of command
-    printf("%d",strcmp("push","push"));
     char* command = Command_Array[0];
 
     // check if command is arithmetic or stack operands
@@ -295,32 +306,32 @@ int Parse_File(int Dest_File_Desc, char** Command_Array)
             }
             else if (!strcmp(memory_segment,"constant"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Push_Stack(Dest_File_Desc,STACK_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"static"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Push_Stack(Dest_File_Desc,STATIC_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"this"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Push_Stack(Dest_File_Desc,THIS_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"that"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Push_Stack(Dest_File_Desc,THAT_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"pointer"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Push_Stack(Dest_File_Desc,POINTER_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"temp"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Push_Stack(Dest_File_Desc,TEMP_P,mem_segment_number);
             }
             
@@ -338,41 +349,51 @@ int Parse_File(int Dest_File_Desc, char** Command_Array)
             }
             else if (!strcmp(memory_segment,"constant"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Pop_Stack(Dest_File_Desc,STACK_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"static"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Pop_Stack(Dest_File_Desc,STATIC_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"this"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Pop_Stack(Dest_File_Desc,THIS_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"that"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Pop_Stack(Dest_File_Desc,THAT_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"pointer"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Pop_Stack(Dest_File_Desc,POINTER_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"temp"))
             {
-                printf("contant %s\n",mem_segment_number);
+                
                 Pop_Stack(Dest_File_Desc,TEMP_P,mem_segment_number);
-            }
-            
+            }   
         }
-    
     }
+    
     else
     {
-
+        // perform arithmetic and logical operations
+        if (!strcmp(command,"add"))
+        {
+            char* Ar_Ll_Cmd = "@0\nAM=M-1\nD=M\n@0\nAM=M-1\nM=M+D\n@0\nAM=M+1\n";
+            int length = strlen(Ar_Ll_Cmd);
+            write(Dest_File_Desc,Ar_Ll_Cmd,length);
+        }
+        else
+        {
+            fprintf(stderr,"A unknown command was used please ensure no errors in file");
+            return -1;
+        }
     }
     printf("parsed\n");
     return 0;
@@ -382,11 +403,12 @@ int Push_Stack(int Asm_File_Desc,int Memory_Segment, char* Segement_Index)
 {
     char* Instruct;
     int length;
+
     if (Memory_Segment > 0)
     {
     // get length of index plus 2(new line and @)chars
     length = strlen(Segement_Index) + 2;
-    Instruct = calloc(3,sizeof(char));
+    Instruct = calloc(length,sizeof(char));
     sprintf(Instruct,"@%s\n",Segement_Index);
 
     // write instruction into assembly file
@@ -458,3 +480,50 @@ int Pop_Stack(int Asm_File_Desc,int Memory_Segment, char* Segement_Index)
 
 }
 
+char* strip(char* _string, int len)
+{
+    char* string = strdup(_string);
+    // Left strip the string
+    // iterate through the chars of the string comparing if it equals to the " "character
+    printf("strippign string");
+    int str_len = strlen(string);
+    int i;
+    for (i = 0;i < str_len;i++)
+    {
+        // char s = string +
+        if (_string[i] == ' ')
+        {
+            continue;
+        }
+        else break;
+    }
+    printf("the resultant string is%d:%s\n",i,_string+i);
+
+    //right strip the string 
+    char* string2 = calloc(str_len - i,sizeof(char));
+    strcpy(string2,_string + i);
+
+    str_len = str_len - i;
+    int span = str_len - 1;
+    i = 0;
+    printf("length is %d",str_len);
+    for (span; span > 0; span--)
+    {
+        printf("%c",string2[span-1]);
+        if (string2[span] == ' ')
+        {
+            i++;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    char* string3 = calloc(str_len-i,sizeof(char));
+    strncpy(string3,string2,str_len-i);
+    free(string2);
+    printf("final string is :%s:i=%d",string3,i);
+    
+    return string3;
+}
