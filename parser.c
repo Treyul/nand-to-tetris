@@ -8,6 +8,16 @@
 #include<ctype.h>
 #include"stack_ini.h"
 
+int no_of_int(int x)
+{
+    int num = 0;
+    while(x>0)
+    {
+        x /= 10;
+        num++;
+    }
+    return num;
+}
 //TODO add support for file path
 // TODO create a variadic function to write a formatted string to a file descriptor
 
@@ -93,7 +103,8 @@ int main(int argc,char* argv[])
     
     // open file without translation the character \n to \r\n
     int Source_File = open(File_Name,O_RDONLY | O_BINARY);
-    int Destination_File = open(Dest_File_Name,O_WRONLY);
+    // clear contents of destination file while opening it
+    int Destination_File = open(Dest_File_Name,O_WRONLY | O_TRUNC);
     if (Source_File > 0 && Dest_File_Name > 0)
     {
         //do operation since file has been opened successfully
@@ -119,6 +130,9 @@ int main(int argc,char* argv[])
        
         }
 
+        //Loop the assembly program to the end
+        char* end_loop = "(END)\n@END\n0;JMP";
+        write(Destination_File,end_loop,strlen(end_loop));
         printf("closing files\n");
         close(Source_File);
         close(Destination_File);
@@ -131,7 +145,7 @@ int main(int argc,char* argv[])
     
     end = clock();
     time_spent =  (double)(end - start) / CLOCKS_PER_SEC;
-    printf("\nExecution time: %f seconds\n", time_spent);
+    printf("\nExecution time: %f seconds, translating %d lines.\n", time_spent,line_number-1);
     return 0;
 }
 
@@ -167,27 +181,34 @@ char* readline(int File_Desc)
     char* Read_Buf = calloc(25,sizeof(char));
     int rd = read(File_Desc,Read_Buf,25);
     
-    // if error occurs during reading close operation
+    // if error occurs during reading, close operation
     if (!rd)
     {
         printf("error\n");
         return NULL;
     }
-
     //check for the first occurence of new line character in the read line(s)
     char* Line_Noise = strchr(Read_Buf,'\n');
     int Size_of_line;
     int pos;
+    printf("line numbers are: %d : %d",rd>=25,Line_Noise==NULL);
 
     //last line in file
     if (Line_Noise == NULL && strcmp(Read_Buf," "))
     {
         Size_of_line = strlen(Read_Buf);
+        line_number++;
     }
+    //TODO catch error on lines with gt 25 characters
+    else if (Line_Noise == NULL && rd >= 25)
+    {
+        printf("Error in line read");
+    }
+    
     else
     {
         Size_of_line = strlen(Read_Buf) - strlen(Line_Noise);
-
+        line_number++;
         if (!Size_of_line)
         {
             // Advance upto the next line with data
@@ -316,26 +337,21 @@ int Parse_File(int Dest_File_Desc, char** Command_Array)
             }
             else if (!strcmp(memory_segment,"this"))
             {
-                
                 Push_Stack(Dest_File_Desc,THIS_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"that"))
             {
-                
                 Push_Stack(Dest_File_Desc,THAT_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"pointer"))
             {
-                
                 Push_Stack(Dest_File_Desc,POINTER_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"temp"))
             {
-                
                 Push_Stack(Dest_File_Desc,TEMP_P,mem_segment_number);
             }
             
-            // write(Dest_File_Desc);
         }
         else if (!strcmp(command,"pop"))
         {
@@ -348,33 +364,27 @@ int Parse_File(int Dest_File_Desc, char** Command_Array)
                 Pop_Stack(Dest_File_Desc,LOCAL_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"constant"))
-            {
-                
+            { 
                 Pop_Stack(Dest_File_Desc,STACK_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"static"))
             {
-                
                 Pop_Stack(Dest_File_Desc,STATIC_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"this"))
             {
-                
                 Pop_Stack(Dest_File_Desc,THIS_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"that"))
             {
-                
                 Pop_Stack(Dest_File_Desc,THAT_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"pointer"))
             {
-                
                 Pop_Stack(Dest_File_Desc,POINTER_P,mem_segment_number);
             }
             else if (!strcmp(memory_segment,"temp"))
             {
-                
                 Pop_Stack(Dest_File_Desc,TEMP_P,mem_segment_number);
             }   
         }
@@ -386,6 +396,58 @@ int Parse_File(int Dest_File_Desc, char** Command_Array)
         if (!strcmp(command,"add"))
         {
             char* Ar_Ll_Cmd = "@0\nAM=M-1\nD=M\n@0\nAM=M-1\nM=M+D\n@0\nAM=M+1\n";
+            int length = strlen(Ar_Ll_Cmd);
+            write(Dest_File_Desc,Ar_Ll_Cmd,length);
+        }
+        else if (!strcmp(command,"sub"))
+        {
+            char* Ar_Ll_Cmd = "@0\nAM=M-1\nD=M\n@0\nAM=M-1\nM=M-D\n@0\nAM=M+1\n";
+            int length = strlen(Ar_Ll_Cmd);
+            write(Dest_File_Desc,Ar_Ll_Cmd,length);
+        }
+        else if (!strcmp(command,"or"))
+        {
+            char* Ar_Ll_Cmd = "@0\nAM=M-1\nD=M\n@0\nAM=M-1\nM=M|D\n@0\nAM=M+1\n";
+            int length = strlen(Ar_Ll_Cmd);
+            write(Dest_File_Desc,Ar_Ll_Cmd,length);
+        }
+        else if (!strcmp(command,"gt"))
+        {
+            int length = strlen("@0\nAM=M-1\nD=M\n@0\nAM=M-1\nD=M-D\n@GT\nD;JGT\n@0\nA=M\nM=0\n@LT\nD;JLT\n(GT)\n@0\nA=M\nM=-1\n(LT)\n@0\nAM=M+1\n") + no_of_int(logicjmp) * 4;
+            char* Ar_Ll_Cmd = calloc(length,sizeof(char)); 
+            sprintf(Ar_Ll_Cmd,"@0\nAM=M-1\nD=M\n@0\nAM=M-1\nD=M-D\n@GT%d\nD;JGT\n@0\nA=M\nM=0\n@LT%d\nD;JLT\n(GT%d)\n@0\nA=M\nM=-1\n(LT%d)\n@0\nAM=M+1\n",logicjmp,logicjmp,logicjmp,logicjmp);
+            write(Dest_File_Desc,Ar_Ll_Cmd,length);
+            free(Ar_Ll_Cmd);
+            logicjmp++;
+        }
+        else if (!strcmp(command,"lt"))
+        {
+             int length = strlen("@0\nAM=M-1\nD=M\n@0\nAM=M-1\nD=D-M\n@LT\nD;JLT\n@0\nA=M\nM=0\n@GT\nD;JGT\n(LT)\n@0\nA=M\nM=-1\n(GT)\n@0\nAM=M+1\n") + no_of_int(logicjmp) * 4;
+            char* Ar_Ll_Cmd = calloc(length,sizeof(char)); 
+            sprintf(Ar_Ll_Cmd,"@0\nAM=M-1\nD=M\n@0\nAM=M-1\nD=M-D\n@LT%d\nD;JLT\n@0\nA=M\nM=0\n@GT%d\nD;JGT\n(LT%d)\n@0\nA=M\nM=-1\n(GT%d)\n@0\nAM=M+1\n",logicjmp,logicjmp,logicjmp,logicjmp);
+            write(Dest_File_Desc,Ar_Ll_Cmd,length);
+            free(Ar_Ll_Cmd);
+            logicjmp++;
+        }
+        else if (!strcmp(command,"and"))
+        {
+            char* Ar_Ll_Cmd = "@0\nAM=M-1\nD=M\n@0\nAM=M-1\nM=M&D\n@0\nAM=M+1\n";
+            int length = strlen(Ar_Ll_Cmd);
+            write(Dest_File_Desc,Ar_Ll_Cmd,length);
+        }
+        else if (!strcmp(command,"neg"))
+        {
+            char* Ar_Ll_Cmd = "@0\nAM=M-1\nM=-M\n@0\nAM=M+1\n";
+            int length = strlen(Ar_Ll_Cmd);
+            write(Dest_File_Desc,Ar_Ll_Cmd,length);
+        }
+        else if (!strcmp(command,"eq"))
+        {
+            /* code */
+        }
+        else if (!strcmp(command,"not"))
+        {
+            char* Ar_Ll_Cmd = "@0\nAM=M-1\nM=!M\n@0\nAM=M+1\n";
             int length = strlen(Ar_Ll_Cmd);
             write(Dest_File_Desc,Ar_Ll_Cmd,length);
         }

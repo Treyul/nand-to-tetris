@@ -1,6 +1,12 @@
-push constant 2
-push constant 3
+push constant 7
+pop local 5
+push constant 12
+pop local 6
+push constant 2              
+push local 5 
+sub
+push local 6
+push constant 9
+add
+add
 pop local 0
-pop local 1
-push local 0
-push local 1

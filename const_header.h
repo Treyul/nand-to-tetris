@@ -28,6 +28,8 @@ char* Dest_File_Name;
 //define file extensions of the source and destination files
 char* Src_FExt = "vm";
 char* Dest_FExt = "asm";
+int line_number = 0;
+int logicjmp = 1;
 
 // declare all function
 /**
