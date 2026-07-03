@@ -1,0 +1,14 @@
+@R2
+D=M
+@R3
+D=D-M
+@GT
+D;JGT
+@R2
+M=0
+@LT
+D;JLT
+(GT)
+@R2
+M=-1
+(LT)

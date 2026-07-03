@@ -1,5 +1,6 @@
 .vscode
-
+*.exe
+/*/*.exe
 harwdware logic elements/*/*.cmp
 harwdware logic elements/*/*.tst
 harwdware logic elements/*/*.xml

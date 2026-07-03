@@ -1,35 +1,62 @@
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
+#include<ctype.h>
+
+
 
 int main()
-{
-    char* string = "13     ";
-
-    // char *last = strrchr(string,'4');
-    // char *first = strchr(string,' ');
-    // int cmd_len = (int) string;//-strlen(first);
-    // char *cm = malloc(cmd_len+1);
-    // strncpy(cm,string,cmd_len);
-    // str
-    // // string = realloc(string,3);
-    // char* cmd = calloc(3,sizeof(char));
-    if ("")
+{ 
+    char* string = "64555";
+    printf("length of string: %d, length of int: %d",strlen(string), no_of_int(5578755));
+    // Left strip the string
+    // iterate through the chars of the string comparing if it equals to the " "character
+    int str_len = strlen(string);
+    int i;
+    for (i = 0;i < str_len;i++)
     {
-        printf("used as bool");
+        // char s = string +
+        if (string[i] == ' ')
+        {
+            continue;
+        }
+        else break;
     }
-    printf("pass?");
-    // strcat(cmd,"@");
-    // strcat(cmd,string);
 
-    // printf("%s\n",first+1);
-    // int
-    // sprintf(string,"sdtfygukh");
-    printf("%s",string);
-    // printf("%s\n",cm);
+    printf("eof");
+    // char* rev = strrev(string);
+    // printf("the resultant string is%d:%s\n",i,rev);
 
+    //right strip the string 
+   
+    char* string2 = calloc(str_len - i,sizeof(char));
+    strcpy(string2,string + i);
+
+    str_len = str_len - i;
+    int span = str_len - 1;
+    i = 0;
+    printf("length is %d",str_len);
+    for (span; span > 0; span--)
+    {
+        printf("%c",string2[span-1]);
+        if (isspace(string2[span]))
+        {
+            i++;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    char* string3 = calloc(str_len-i,sizeof(char));
+    strncpy(string3,string2,str_len-i);
+    free(string2);
+    printf("final string is :%s:i=%d",string3,i);
+    
     return 0;
 }
+
 
 /**
  * @brief 
